@@ -6,22 +6,63 @@ const { useState } = React;
 export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex }) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(card.title);
+  const [lastClickTime, setLastClickTime] = useState(0);
 
   function handleDragStart(e) {
+    if (isEditing) {
+      e.preventDefault();
+      return;
+    }
     e.stopPropagation();
     e.dataTransfer.setData('text/plain', card.id);
     e.dataTransfer.effectAllowed = 'move';
   }
 
   function handleClick(e) {
-    if (!e.detail || e.detail === 1) {
-      // Single click - do nothing special
+    e.stopPropagation();
+    if (isEditing) return;
+    
+    const now = Date.now();
+    if (now - lastClickTime < 300) {
+      // Double click - start editing
+      setIsEditing(true);
+      setEditValue(card.title);
+    }
+    setLastClickTime(now);
+  }
+
+  function handleKeyDown(e) {
+    if (!isEditing && e.target === e.currentTarget) {
+      // Start editing when typing on the card
+      if (e.key.length === 1 || e.key === 'Backspace') {
+        e.preventDefault(); // Prevent the key from being processed again
+        setIsEditing(true);
+        setEditValue(e.key === 'Backspace' ? '' : e.key);
+      }
     }
   }
 
-  function handleDoubleClick(e) {
-    e.stopPropagation();
-    onEdit();
+  function handleEditKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEdit();
+    }
+  }
+
+  function saveEdit() {
+    if (editValue.trim() && editValue.trim() !== card.title) {
+      onEdit(editValue.trim());
+    }
+    setIsEditing(false);
+  }
+
+  function cancelEdit() {
+    setEditValue(card.title);
+    setIsEditing(false);
   }
 
   function handleContextMenu(e) {
@@ -49,14 +90,22 @@ export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex }) 
     className: "relative"
   },
     React.createElement('div', {
-      className: "bg-white p-3 rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer select-none",
-      draggable: true,
+      className: `bg-white p-3 rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer ${isEditing ? 'ring-2 ring-blue-500' : ''}`,
+      draggable: !isEditing,
       onDragStart: handleDragStart,
       onClick: handleClick,
-      onDoubleClick: handleDoubleClick,
-      onContextMenu: handleContextMenu
+      onKeyDown: handleKeyDown,
+      onContextMenu: handleContextMenu,
+      tabIndex: 0
     },
-      React.createElement('div', {
+      isEditing ? React.createElement('input', {
+        className: "w-full text-sm font-medium text-gray-900 bg-transparent border-none outline-none",
+        value: editValue,
+        onChange: e => setEditValue(e.target.value),
+        onBlur: saveEdit,
+        onKeyDown: handleEditKeyDown,
+        autoFocus: true
+      }) : React.createElement('div', {
         className: "text-sm font-medium text-gray-900"
       }, card.title)
     ),
@@ -150,7 +199,7 @@ export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, on
             card,
             listId: list.id,
             cardIndex: cardIdx,
-            onEdit: () => onEditCard(cardIdx),
+            onEdit: (newTitle) => onEditCard(cardIdx, newTitle),
             onDelete: () => onDeleteCard(cardIdx),
             onCardDrop: onCardDrop
           })

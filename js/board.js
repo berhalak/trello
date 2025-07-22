@@ -37,7 +37,7 @@ export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, o
           key: list.id,
           list,
           onAddCard: title => onAddCard(idx, title),
-          onEditCard: cardIdx => onEditCard(idx, cardIdx),
+          onEditCard: (cardIdx, newTitle) => onEditCard(idx, cardIdx, newTitle),
           onDeleteCard: cardIdx => onDeleteCard(idx, cardIdx),
           onEditList: () => onEditList(idx),
           onDeleteList: () => onDeleteList(idx),

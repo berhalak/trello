@@ -63,14 +63,13 @@ function App() {
     });
   }
 
-  function editCard(listIdx, cardIdx) {
-    const title = prompt("Edit card title", board.lists[listIdx].cards[cardIdx].title);
-    if (title && title.trim()) {
+  function editCard(listIdx, cardIdx, newTitle) {
+    if (newTitle && newTitle.trim()) {
       setBoard({
         ...board,
         lists: board.lists.map((l, j) => j === listIdx ? {
           ...l,
-          cards: l.cards.map((c, k) => k === cardIdx ? { ...c, title: title.trim() } : c)
+          cards: l.cards.map((c, k) => k === cardIdx ? { ...c, title: newTitle.trim() } : c)
         } : l)
       });
     }
