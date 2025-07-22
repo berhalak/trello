@@ -19,10 +19,38 @@ function App() {
   });
 
   const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedList, setSelectedList] = useState(null);
 
   useEffect(() => {
     saveBoards([board]);
   }, [board]);
+
+  // Global keyboard handler for quick task entry
+  useEffect(() => {
+    function handleGlobalKeyDown(e) {
+      // Only handle if no card is selected but a list is selected, and focus is on body
+      if (!selectedCard && selectedList && document.activeElement === document.body) {
+        if (e.key.length === 1 || e.key === 'Backspace') {
+          e.preventDefault();
+          const listIdx = board.lists.findIndex(l => l.id === selectedList);
+          if (listIdx !== -1) {
+            startQuickAdd(listIdx, e.key === 'Backspace' ? '' : e.key);
+          }
+        }
+      }
+    }
+    
+    document.addEventListener('keydown', handleGlobalKeyDown);
+    return () => document.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [selectedCard, selectedList, board.lists]);
+
+  function startQuickAdd(listIdx, initialChar) {
+    // This will be handled by the List component
+    const event = new CustomEvent('startQuickAdd', { 
+      detail: { listIdx, initialChar } 
+    });
+    document.dispatchEvent(event);
+  }
 
   // List CRUD
   function addList(listTitle) {
@@ -105,9 +133,24 @@ function App() {
   // Card selection and navigation
   function selectCard(listId, cardIndex) {
     setSelectedCard({ listId, cardIndex });
+    setSelectedList(listId); // Always set active lane when selecting a card
+  }
+
+  function clearCardSelection() {
+    setSelectedCard(null);
+    // Keep selectedList (active lane) when clearing card selection
+  }
+
+  function setActiveLane(listId) {
+    setSelectedList(listId);
   }
 
   function navigateCard(direction) {
+    if (direction === 'clear') {
+      setSelectedCard(null);
+      return;
+    }
+    
     if (!selectedCard) return;
     
     const currentListIdx = board.lists.findIndex(l => l.id === selectedCard.listId);
@@ -160,6 +203,8 @@ function App() {
             listId: board.lists[currentListIdx - 1].id,
             cardIndex: lists[currentListIdx - 1].cards.length - 1
           };
+          // Set the target lane as active
+          setSelectedList(board.lists[currentListIdx - 1].id);
         }
         break;
         
@@ -176,6 +221,8 @@ function App() {
             listId: board.lists[currentListIdx + 1].id,
             cardIndex: lists[currentListIdx + 1].cards.length - 1
           };
+          // Set the target lane as active
+          setSelectedList(board.lists[currentListIdx + 1].id);
         }
         break;
     }
@@ -237,7 +284,10 @@ function App() {
       React.createElement(Board, {
         board: board,
         selectedCard: selectedCard,
+        selectedList: selectedList,
         onSelectCard: selectCard,
+        onClearCardSelection: clearCardSelection,
+        onSetActiveLane: setActiveLane,
         onNavigateCard: navigateCard,
         onAddList: addList,
         onEditList: editList,

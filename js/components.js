@@ -37,7 +37,7 @@ export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex, is
     
     const now = Date.now();
     if (now - lastClickTime < 300) {
-      // Double click - start editing
+      // Double click - start editing with current content
       setIsEditing(true);
       setEditValue(card.title);
     }
@@ -84,6 +84,8 @@ export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex, is
       onEdit(editValue.trim());
     }
     setIsEditing(false);
+    // After saving, clear card selection but keep lane active
+    onNavigate('clear');
   }
 
   function cancelEdit() {
@@ -136,7 +138,15 @@ export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex, is
         onBlur: saveEdit,
         onKeyDown: handleEditKeyDown,
         rows: Math.max(1, editValue.split('\n').length),
-        autoFocus: true
+        autoFocus: true,
+        ref: textareaRef => {
+          if (textareaRef) {
+            // Set cursor to end of text
+            setTimeout(() => {
+              textareaRef.setSelectionRange(textareaRef.value.length, textareaRef.value.length);
+            }, 0);
+          }
+        }
       }) : React.createElement('div', {
         className: "text-sm font-medium text-gray-900 whitespace-pre-wrap"
       }, card.title)
@@ -159,15 +169,40 @@ export function Card({ card, onEdit, onDelete, listId, onCardDrop, cardIndex, is
 }
 
 // List component
-export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, onDeleteList, onCardDrop, selectedCard, onSelectCard, onNavigateCard }) {
+export function List({ list, listIndex, onAddCard, onEditCard, onDeleteCard, onEditList, onDeleteList, onCardDrop, selectedCard, selectedList, onSelectCard, onClearCardSelection, onSetActiveLane, onNavigateCard }) {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [newCardTitle, setNewCardTitle] = useState("");
+
+  const isSelected = selectedList === list.id;
+
+  // Handle quick add events
+  React.useEffect(() => {
+    function handleQuickAdd(e) {
+      if (e.detail.listIdx === listIndex) {
+        setIsAddingCard(true);
+        setNewCardTitle(e.detail.initialChar);
+      }
+    }
+    
+    document.addEventListener('startQuickAdd', handleQuickAdd);
+    return () => document.removeEventListener('startQuickAdd', handleQuickAdd);
+  }, [listIndex]);
+
+  // Click handler for list selection
+  function handleListClick(e) {
+    if (e.target === e.currentTarget) {
+      onSetActiveLane(list.id);
+      onClearCardSelection();
+    }
+  }
 
   function handleAddCard() {
     if (newCardTitle.trim()) {
       onAddCard(newCardTitle.trim());
       setNewCardTitle("");
       setIsAddingCard(false);
+      // After adding a card, clear card selection but keep lane active
+      onClearCardSelection();
     }
   }
 
@@ -193,7 +228,10 @@ export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, on
   }
 
   return React.createElement('div', {
-    className: "bg-gray-100 rounded-lg p-3 w-80 flex-shrink-0 h-fit mr-4",
+    className: `bg-gray-100 rounded-lg p-3 w-80 flex-shrink-0 h-fit mr-4 ${
+      isSelected ? 'ring-2 ring-green-400 bg-green-50' : ''
+    }`,
+    onClick: handleListClick,
     onDragOver: e => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -263,7 +301,15 @@ export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, on
           onChange: e => setNewCardTitle(e.target.value),
           onKeyDown: handleAddCardKeyDown,
           rows: 3,
-          autoFocus: true
+          autoFocus: true,
+          ref: textareaRef => {
+            if (textareaRef && newCardTitle) {
+              // Set cursor to end when starting with a character
+              setTimeout(() => {
+                textareaRef.setSelectionRange(textareaRef.value.length, textareaRef.value.length);
+              }, 0);
+            }
+          }
         }),
         React.createElement('div', {
           className: "flex gap-2 mt-2"
