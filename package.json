@@ -1,0 +1,15 @@
+{
+  "name": "trello-clone-server",
+  "version": "1.0.0",
+  "description": "Static server for Trello clone",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "keywords": ["trello", "static", "server"],
+  "author": "",
+  "license": "MIT"
+}
