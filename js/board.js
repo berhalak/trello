@@ -3,7 +3,7 @@ import { List } from './components.js';
 const { useState } = React;
 
 // Board component
-export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, onEditCard, onDeleteCard, onMoveCard, onEditBoard, onDeleteBoard, onMoveList, onOpenCardModal, onCardDrop, onListDrop }) {
+export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, onEditCard, onDeleteCard, onCardDrop }) {
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
 
@@ -18,29 +18,9 @@ export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, o
   return React.createElement('div', {
     className: "h-full"
   },
-    // Board header
-    React.createElement('div', {
-      className: "flex items-center justify-between mb-6 bg-white p-4 rounded-lg shadow-sm"
-    },
-      React.createElement('h2', {
-        className: "text-2xl font-bold text-gray-900"
-      }, board.title),
-      React.createElement('div', {
-        className: "flex gap-2"
-      },
-        React.createElement('button', {
-          className: "px-3 py-1 text-blue-600 hover:text-blue-800 text-sm",
-          onClick: onEditBoard
-        }, "Edit"),
-        React.createElement('button', {
-          className: "px-3 py-1 text-red-600 hover:text-red-800 text-sm",
-          onClick: onDeleteBoard
-        }, "Delete")
-      )
-    ),
     // Lists container
     React.createElement('div', {
-      className: "flex overflow-x-auto pb-4 h-[calc(100vh-180px)]",
+      className: "flex overflow-x-auto pb-4 h-[calc(100vh-120px)]",
       onDragOver: e => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
@@ -56,14 +36,11 @@ export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, o
         React.createElement(List, {
           key: list.id,
           list,
-          listIdx: idx,
           onAddCard: title => onAddCard(idx, title),
           onEditCard: cardIdx => onEditCard(idx, cardIdx),
           onDeleteCard: cardIdx => onDeleteCard(idx, cardIdx),
           onEditList: () => onEditList(idx),
           onDeleteList: () => onDeleteList(idx),
-          onMoveCard: (cardIdx, dir) => onMoveCard(idx, cardIdx, dir),
-          onOpenCardModal: onOpenCardModal,
           onCardDrop: onCardDrop
         })
       ),
