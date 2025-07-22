@@ -3,7 +3,7 @@ import { List } from './components.js';
 const { useState } = React;
 
 // Board component
-export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, onEditCard, onDeleteCard, onCardDrop }) {
+export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, onEditCard, onDeleteCard, onCardDrop, selectedCard, onSelectCard, onNavigateCard }) {
   const [isAddingList, setIsAddingList] = useState(false);
   const [newListTitle, setNewListTitle] = useState("");
 
@@ -36,6 +36,9 @@ export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, o
         React.createElement(List, {
           key: list.id,
           list,
+          selectedCard,
+          onSelectCard,
+          onNavigateCard,
           onAddCard: title => onAddCard(idx, title),
           onEditCard: (cardIdx, newTitle) => onEditCard(idx, cardIdx, newTitle),
           onDeleteCard: cardIdx => onDeleteCard(idx, cardIdx),

@@ -18,6 +18,8 @@ function App() {
     };
   });
 
+  const [selectedCard, setSelectedCard] = useState(null);
+
   useEffect(() => {
     saveBoards([board]);
   }, [board]);
@@ -76,6 +78,21 @@ function App() {
   }
 
   function deleteCard(listIdx, cardIdx) {
+    // Clear selection if we're deleting the selected card
+    if (selectedCard && 
+        selectedCard.listId === board.lists[listIdx].id && 
+        selectedCard.cardIndex === cardIdx) {
+      setSelectedCard(null);
+    } else if (selectedCard && 
+               selectedCard.listId === board.lists[listIdx].id && 
+               selectedCard.cardIndex > cardIdx) {
+      // Adjust selection index if deleting a card before the selected one
+      setSelectedCard({
+        ...selectedCard,
+        cardIndex: selectedCard.cardIndex - 1
+      });
+    }
+    
     setBoard({
       ...board,
       lists: board.lists.map((l, j) => j === listIdx ? {
@@ -83,6 +100,88 @@ function App() {
         cards: l.cards.filter((_, k) => k !== cardIdx)
       } : l)
     });
+  }
+
+  // Card selection and navigation
+  function selectCard(listId, cardIndex) {
+    setSelectedCard({ listId, cardIndex });
+  }
+
+  function navigateCard(direction) {
+    if (!selectedCard) return;
+    
+    const currentListIdx = board.lists.findIndex(l => l.id === selectedCard.listId);
+    if (currentListIdx === -1) return;
+    
+    const currentList = board.lists[currentListIdx];
+    const card = currentList.cards[selectedCard.cardIndex];
+    if (!card) return;
+    
+    let newBoard = { ...board };
+    let newSelection = { ...selectedCard };
+    
+    switch (direction) {
+      case 'up':
+        // Move card up in the same list
+        if (selectedCard.cardIndex > 0) {
+          const lists = newBoard.lists.map(l => ({ ...l, cards: [...l.cards] }));
+          const cards = lists[currentListIdx].cards;
+          // Swap with card above
+          [cards[selectedCard.cardIndex], cards[selectedCard.cardIndex - 1]] = 
+          [cards[selectedCard.cardIndex - 1], cards[selectedCard.cardIndex]];
+          newBoard.lists = lists;
+          newSelection.cardIndex = selectedCard.cardIndex - 1;
+        }
+        break;
+        
+      case 'down':
+        // Move card down in the same list
+        if (selectedCard.cardIndex < currentList.cards.length - 1) {
+          const lists = newBoard.lists.map(l => ({ ...l, cards: [...l.cards] }));
+          const cards = lists[currentListIdx].cards;
+          // Swap with card below
+          [cards[selectedCard.cardIndex], cards[selectedCard.cardIndex + 1]] = 
+          [cards[selectedCard.cardIndex + 1], cards[selectedCard.cardIndex]];
+          newBoard.lists = lists;
+          newSelection.cardIndex = selectedCard.cardIndex + 1;
+        }
+        break;
+        
+      case 'left':
+        // Move card to the list on the left
+        if (currentListIdx > 0) {
+          const lists = newBoard.lists.map(l => ({ ...l, cards: [...l.cards] }));
+          // Remove card from current list
+          const [movedCard] = lists[currentListIdx].cards.splice(selectedCard.cardIndex, 1);
+          // Add to the end of the left list
+          lists[currentListIdx - 1].cards.push(movedCard);
+          newBoard.lists = lists;
+          newSelection = {
+            listId: board.lists[currentListIdx - 1].id,
+            cardIndex: lists[currentListIdx - 1].cards.length - 1
+          };
+        }
+        break;
+        
+      case 'right':
+        // Move card to the list on the right
+        if (currentListIdx < board.lists.length - 1) {
+          const lists = newBoard.lists.map(l => ({ ...l, cards: [...l.cards] }));
+          // Remove card from current list
+          const [movedCard] = lists[currentListIdx].cards.splice(selectedCard.cardIndex, 1);
+          // Add to the end of the right list
+          lists[currentListIdx + 1].cards.push(movedCard);
+          newBoard.lists = lists;
+          newSelection = {
+            listId: board.lists[currentListIdx + 1].id,
+            cardIndex: lists[currentListIdx + 1].cards.length - 1
+          };
+        }
+        break;
+    }
+    
+    setBoard(newBoard);
+    setSelectedCard(newSelection);
   }
 
   // Drag and drop
@@ -137,6 +236,9 @@ function App() {
       // Main content
       React.createElement(Board, {
         board: board,
+        selectedCard: selectedCard,
+        onSelectCard: selectCard,
+        onNavigateCard: navigateCard,
         onAddList: addList,
         onEditList: editList,
         onDeleteList: deleteList,
