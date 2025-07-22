@@ -6,12 +6,28 @@ const { useState } = React;
 export function Card({ card, onEdit, onDelete, onOpenModal, listIdx, cardIdx }) {
   const isOverdue = card.due && new Date(card.due) < new Date() && !card.checklist?.every(c => c.done);
   
+  function handleClick(e) {
+    // Don't open modal if dragging or clicking action buttons
+    if (e.defaultPrevented) return;
+    onOpenModal();
+  }
+  
+  function handleDragStart(e) {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', card.id);
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      cardId: card.id,
+      listIdx: listIdx,
+      cardIdx: cardIdx
+    }));
+  }
+  
   return React.createElement('div', {
-    className: `bg-white rounded-lg shadow-sm p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow ${isOverdue ? 'border-l-4 border-red-500' : ''}`,
+    className: `bg-white rounded-lg shadow-sm p-3 mb-2 cursor-pointer hover:shadow-md transition-shadow group ${isOverdue ? 'border-l-4 border-red-500' : ''}`,
     draggable: true,
     'data-dnd-id': card.id,
-    onDragStart: DragAndDrop.onDragStart,
-    onClick: onOpenModal
+    onDragStart: handleDragStart,
+    onClick: handleClick
   },
     // Labels
     card.labels && card.labels.length > 0 && React.createElement('div', {
@@ -45,11 +61,19 @@ export function Card({ card, onEdit, onDelete, onOpenModal, listIdx, cardIdx }) 
     },
       React.createElement('button', {
         className: "text-xs text-blue-500 hover:text-blue-700 px-1",
-        onClick: onEdit
+        onClick: e => {
+          e.preventDefault();
+          e.stopPropagation();
+          onEdit();
+        }
       }, "✏"),
       React.createElement('button', {
         className: "text-xs text-red-500 hover:text-red-700 px-1",
-        onClick: onDelete
+        onClick: e => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDelete();
+        }
       }, "🗑")
     )
   );
@@ -68,16 +92,31 @@ export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, on
     }
   }
 
+  function handleListDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cardId = e.dataTransfer.getData('text/plain');
+    if (cardId && cardId !== list.id) {
+      onCardDrop(cardId, list.id);
+    }
+  }
+
+  function handleCardDrop(e, targetCardIdx) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cardId = e.dataTransfer.getData('text/plain');
+    if (cardId) {
+      onCardDrop(cardId, list.id, targetCardIdx);
+    }
+  }
+
   return React.createElement('div', {
     className: "bg-gray-100 rounded-lg p-3 w-80 mr-4 flex-shrink-0 max-h-[calc(100vh-200px)] flex flex-col",
-    draggable: true,
-    'data-dnd-id': list.id,
-    onDragStart: DragAndDrop.onDragStart,
-    onDragOver: DragAndDrop.onDragOver,
-    onDrop: e => DragAndDrop.onDrop(e, (id, event) => {
-      if (event.target.closest('[data-dnd-id="' + id + '"]')) return;
-      onCardDrop(id, list.id);
-    })
+    onDragOver: e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    },
+    onDrop: handleListDrop
   },
     // List header
     React.createElement('div', {
@@ -101,13 +140,16 @@ export function List({ list, onAddCard, onEditCard, onDeleteCard, onEditList, on
     ),
     // Cards container
     React.createElement('div', {
-      className: "flex-1 overflow-y-auto space-y-2 group"
+      className: "flex-1 overflow-y-auto space-y-2"
     },
       list.cards.map((card, idx) =>
         React.createElement('div', {
           key: card.id,
-          onDragOver: DragAndDrop.onDragOver,
-          onDrop: e => DragAndDrop.onDrop(e, id => onCardDrop(id, list.id, idx))
+          onDragOver: e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+          },
+          onDrop: e => handleCardDrop(e, idx)
         },
           React.createElement(Card, {
             card,

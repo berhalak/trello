@@ -1,5 +1,4 @@
 import { List } from './components.js';
-import { DragAndDrop } from './utils.js';
 
 const { useState } = React;
 
@@ -42,8 +41,15 @@ export function Board({ board, onAddList, onEditList, onDeleteList, onAddCard, o
     // Lists container
     React.createElement('div', {
       className: "flex overflow-x-auto pb-4 h-[calc(100vh-180px)]",
-      onDragOver: DragAndDrop.onDragOver,
-      onDrop: e => DragAndDrop.onDrop(e, id => onListDrop(id))
+      onDragOver: e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      },
+      onDrop: e => {
+        e.preventDefault();
+        const cardId = e.dataTransfer.getData('text/plain');
+        // This is for list reordering, not implemented yet
+      }
     },
       // Lists
       board.lists.map((list, idx) =>

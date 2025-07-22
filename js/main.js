@@ -188,7 +188,7 @@ function App() {
       let card, fromListIdx, fromCardIdx;
       b.lists.forEach((l, li) => {
         l.cards.forEach((c, ci) => {
-          if (c.id == cardId) {
+          if (c.id === cardId) {
             card = c;
             fromListIdx = li;
             fromCardIdx = ci;
@@ -199,12 +199,16 @@ function App() {
       if (!card) return b;
       
       let lists = b.lists.map(l => ({ ...l, cards: [...l.cards] }));
+      
+      // Remove card from source
       lists[fromListIdx].cards.splice(fromCardIdx, 1);
       
-      const toIdx = lists.findIndex(l => l.id == targetListId);
+      // Find target list
+      const toIdx = lists.findIndex(l => l.id === targetListId);
       if (toIdx === -1) return b;
       
-      if (typeof targetCardIdx === 'number') {
+      // Insert card at target position
+      if (typeof targetCardIdx === 'number' && targetCardIdx >= 0) {
         lists[toIdx].cards.splice(targetCardIdx, 0, card);
       } else {
         lists[toIdx].cards.push(card);
